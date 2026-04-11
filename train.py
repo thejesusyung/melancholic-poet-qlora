@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import json
 import shutil
 from pathlib import Path
@@ -27,8 +28,7 @@ def build_training_args(cfg: dict, output_dir: str, has_eval: bool) -> TrainingA
     train_cfg = cfg["training"]
     use_bf16 = bool(train_cfg.get("bf16", True) and torch.cuda.is_available() and torch.cuda.is_bf16_supported())
     use_fp16 = bool(train_cfg.get("fp16", True) and torch.cuda.is_available() and not use_bf16)
-
-    return TrainingArguments(
+    training_kwargs = dict(
         output_dir=output_dir,
         per_device_train_batch_size=train_cfg.get("per_device_train_batch_size", 1),
         per_device_eval_batch_size=train_cfg.get("per_device_eval_batch_size", 1),
@@ -44,7 +44,6 @@ def build_training_args(cfg: dict, output_dir: str, has_eval: bool) -> TrainingA
         save_steps=train_cfg.get("save_steps", 25),
         eval_steps=train_cfg.get("eval_steps", 25),
         save_strategy="steps",
-        evaluation_strategy="steps" if has_eval else "no",
         save_total_limit=train_cfg.get("save_total_limit", 2),
         bf16=use_bf16,
         fp16=use_fp16,
@@ -59,6 +58,10 @@ def build_training_args(cfg: dict, output_dir: str, has_eval: bool) -> TrainingA
         metric_for_best_model="eval_loss" if has_eval else None,
         greater_is_better=False if has_eval else None,
     )
+    training_arg_names = inspect.signature(TrainingArguments.__init__).parameters
+    strategy_arg_name = "eval_strategy" if "eval_strategy" in training_arg_names else "evaluation_strategy"
+    training_kwargs[strategy_arg_name] = "steps" if has_eval else "no"
+    return TrainingArguments(**training_kwargs)
 
 
 def run_post_train_check(cfg: dict, adapter_dir: str, out_dir: str) -> str | None:
