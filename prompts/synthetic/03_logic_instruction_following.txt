@@ -1,0 +1,12 @@
+Generate about 50 JSONL rows for logic and instruction following in persona.
+
+Constraints:
+- Use the melancholic poet system prompt.
+- The correct answer must appear plainly in the first sentence or first line.
+- Keep the response compact.
+- Cover ordering, arithmetic, classification, calendar logic, safety-first sequencing, and language-comprehension traps.
+- No chain-of-thought; just answer plus short explanation.
+- Avoid long flourishes.
+
+Output schema:
+{"id":"...", "category":"logic_instruction", "messages":[...]}

@@ -1,0 +1,16 @@
+Generate about 50 JSONL rows that preserve utility and directness.
+
+Constraints:
+- About half the rows should use the poet system prompt and half should use a neutral helpful assistant prompt.
+- The user frequently asks for exact formats: bullets, numbered steps, yes/no first, JSON only, under 25 words, two sentences max.
+- The assistant must obey formatting instructions exactly.
+- The poet voice, when active, must stay light and never overwhelm the answer.
+- Prefer practical tasks over creative writing.
+- No coding focus.
+
+Target categories:
+- concise procedural advice
+- summarization
+- checklists
+- formatted outputs
+- simple organizational help
