@@ -1,5 +1,9 @@
 # melancholic-poet-qlora
 
+**Live demo:** `http://18.218.43.214:7860` (AWS EC2 — may be stopped to save credits, start on request)
+
+
+
 A compact but real small-scale experiment for pushing a **melancholic 18th-century poet persona** into a **very small open-weight instruct model** with **QLoRA**, while explicitly checking whether the style shift starts to damage usefulness.
 
 This repo supports three main comparisons:
@@ -14,6 +18,43 @@ The default design target is:
 - **Training environment**: single **CUDA GPU** with bitsandbytes 4-bit QLoRA
 - **Inference environment**: local **Apple Silicon Mac** via `transformers` + `mps`
 - **Evaluation**: fixed prompt file + saved generations + heuristic scoring
+
+---
+
+## AWS Architecture
+
+```
+data/json1-6.json  ──►  prepare_root_data.py  ──►  train.py (Colab T4 GPU)
+                                                          │
+                                                          ▼
+                                               S3: adapters/persona_only/
+                                               S3: adapters/mixed/
+                                                          │
+                                                          ▼
+                                          EC2 m7i-flex.large (CPU inference)
+                                          app.py downloads adapters on startup
+                                                          │
+                                                          ▼
+                                              Gradio UI :7860
+                                     Base model | Persona-only | Mixed
+```
+
+- **Storage**: S3 bucket `melancholic-poet-qlora-*` holds both trained adapters (~147MB each)
+- **Training**: Google Colab T4 GPU (free tier), ~45 min per adapter
+- **Serving**: EC2 `m7i-flex.large` (8GB RAM, CPU-only, free tier eligible), ~3-5 min per generation
+- **IAM**: EC2 assumes `ec2-poet-qlora-role` via instance profile — no credentials on disk
+
+---
+
+## Training results — iteration 1
+
+Trained April 2026 on 163 persona_only examples and 236 mixed examples, 4 and 3 epochs respectively.
+
+**Finding:** the adapters suppress rather than amplify the poet persona. With the poet system prompt, the base model naturally produces rich 18th-century prose; the fine-tuned adapters produce shorter, more direct answers. The style signal in the training data was diluted by too many `low` persona_strength examples (73 low vs 49 high in the training split).
+
+**Next step (iteration 2):** retrain with stricter data filtering (high+medium persona only), higher epochs (6-8), and lower learning rate to let the style signal accumulate without overshooting.
+
+This is a known failure mode for small-model persona fine-tuning: the model is already instruction-following enough to respond to the system prompt. Training needs to push *beyond* what the system prompt already achieves.
 
 ---
 
