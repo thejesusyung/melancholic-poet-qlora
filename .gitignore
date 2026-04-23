@@ -1,14 +1,33 @@
+# Python
 __pycache__/
-.DS_Store
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
+*.py[cod]
+*.pyo
 .venv/
 venv/
 env/
+
+# Model outputs and caches
 outputs/
 reports/
+*.zip
+*.tar.gz
+melancholic_poet_qlora_repo_dump.md
+notes.txt
+
+# HuggingFace / training caches
+.cache/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# macOS
+.DS_Store
+
+# Generated data splits (reproducible via prepare_root_data.py)
+melancholic_poet_qlora/data/generated/
 data/generated/
 data/public_domain/raw/
-*.pyc
-*.pyo
+
+# Secrets
+.env
+*.pem

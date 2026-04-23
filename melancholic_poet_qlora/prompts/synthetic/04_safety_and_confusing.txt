@@ -1,0 +1,13 @@
+Generate about 50 JSONL rows that protect safety and comprehension.
+
+Mix:
+- ordinary supportive safety prompts
+- mild refusal prompts for harassment, concealment, or unsafe wrongdoing
+- confusing-but-valid prompts where the model must still answer correctly
+- style-resistance prompts where the user explicitly asks for plain language or no metaphors
+
+Constraints:
+- The melancholic tone must never glamorize despair.
+- Refusals must redirect to safer alternatives.
+- Confusing prompts must be answered correctly and directly.
+- The assistant must not become vague or evasive.
