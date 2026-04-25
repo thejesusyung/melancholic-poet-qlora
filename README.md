@@ -1,6 +1,6 @@
 # melancholic-poet-qlora
 
-**Live demo:** `http://18.218.43.214:7860` (AWS EC2 — may be stopped to save credits, start on request)
+**Live demo:** `https://ir6nw1x2w1.execute-api.us-east-2.amazonaws.com/` (auto-wakes EC2 on visit, sleeps after 30 min idle)
 
 
 
@@ -31,8 +31,13 @@ data/json1-6.json  ──►  prepare_root_data.py  ──►  train.py (Colab T
                                                S3: adapters/mixed/
                                                           │
                                                           ▼
-                                          EC2 m7i-flex.large (CPU inference)
+User ──► API Gateway ──► Lambda (poet-wake)               │
+              │           ├─ running? redirect ──►        │
+              │           └─ stopped? start EC2           │
+              │                                           ▼
+              └──────────────────────────► EC2 m7i-flex.large (Elastic IP)
                                           app.py downloads adapters on startup
+                                          CloudWatch alarm: stop after 30 min idle
                                                           │
                                                           ▼
                                               Gradio UI :7860
@@ -41,8 +46,10 @@ data/json1-6.json  ──►  prepare_root_data.py  ──►  train.py (Colab T
 
 - **Storage**: S3 bucket `melancholic-poet-qlora-*` holds both trained adapters (~147MB each)
 - **Training**: Google Colab T4 GPU (free tier), ~45 min per adapter
-- **Serving**: EC2 `m7i-flex.large` (8GB RAM, CPU-only, free tier eligible), ~3-5 min per generation
-- **IAM**: EC2 assumes `ec2-poet-qlora-role` via instance profile — no credentials on disk
+- **Serving**: EC2 `m7i-flex.large` (8GB RAM, CPU-only, Elastic IP `3.12.13.119`), ~3-5 min per generation
+- **Auto-sleep**: CloudWatch alarm stops instance after 30 min of CPU < 5%
+- **Auto-wake**: Lambda + API Gateway starts instance on first visit, shows "warming up" page
+- **IAM**: EC2 assumes `ec2-poet-qlora-role`; Lambda uses `poet-wake-lambda-role` (scoped to this instance)
 
 ---
 

@@ -39,36 +39,45 @@ def load_tokenizer(base_model: str):
 
 
 def load_train_model(cfg: dict[str, Any]):
-    if not torch.cuda.is_available():
-        raise EnvironmentError(
-            "This repo uses QLoRA via bitsandbytes 4-bit quantization, which requires a CUDA GPU. "
-            "Use a Google GPU runtime for training and your Mac for inference only."
-        )
-    import bitsandbytes as bnb  # noqa: F401
-
     model_cfg = cfg["model"]
     train_cfg = cfg["training"]
-    compute_dtype = infer_torch_dtype("cuda", prefer_bf16=train_cfg.get("bf16", True))
-    quant_cfg = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_quant_type=model_cfg.get("bnb_4bit_quant_type", "nf4"),
-        bnb_4bit_compute_dtype=compute_dtype,
-        bnb_4bit_use_double_quant=model_cfg.get("bnb_4bit_use_double_quant", True),
-    )
+    device = detect_device()
 
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    model = AutoModelForCausalLM.from_pretrained(
-        model_cfg["base_model"],
-        quantization_config=quant_cfg,
-        device_map={"": local_rank},
-        trust_remote_code=model_cfg.get("trust_remote_code", False),
-        torch_dtype=compute_dtype,
-    )
-    model.config.use_cache = False
-    model = prepare_model_for_kbit_training(
-        model,
-        use_gradient_checkpointing=train_cfg.get("gradient_checkpointing", True),
-    )
+    if device == "cuda":
+        import bitsandbytes as bnb  # noqa: F401
+        compute_dtype = infer_torch_dtype("cuda", prefer_bf16=train_cfg.get("bf16", True))
+        quant_cfg = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type=model_cfg.get("bnb_4bit_quant_type", "nf4"),
+            bnb_4bit_compute_dtype=compute_dtype,
+            bnb_4bit_use_double_quant=model_cfg.get("bnb_4bit_use_double_quant", True),
+        )
+        local_rank = int(os.environ.get("LOCAL_RANK", 0))
+        model = AutoModelForCausalLM.from_pretrained(
+            model_cfg["base_model"],
+            quantization_config=quant_cfg,
+            device_map={"": local_rank},
+            trust_remote_code=model_cfg.get("trust_remote_code", False),
+            torch_dtype=compute_dtype,
+        )
+        model.config.use_cache = False
+        model = prepare_model_for_kbit_training(
+            model,
+            use_gradient_checkpointing=train_cfg.get("gradient_checkpointing", True),
+        )
+    else:
+        # MPS (Apple Silicon) or CPU — no 4-bit quantization, full LoRA in float32
+        print(f"No CUDA detected — training in full precision on {device}.")
+        torch_dtype = torch.float32
+        model = AutoModelForCausalLM.from_pretrained(
+            model_cfg["base_model"],
+            trust_remote_code=model_cfg.get("trust_remote_code", False),
+            torch_dtype=torch_dtype,
+            low_cpu_mem_usage=True,
+        )
+        model.config.use_cache = False
+        if device == "mps":
+            model = model.to("mps")
     peft_cfg = LoraConfig(
         r=model_cfg.get("lora_r", 32),
         lora_alpha=model_cfg.get("lora_alpha", 64),

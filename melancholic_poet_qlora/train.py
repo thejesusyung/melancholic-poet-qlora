@@ -28,6 +28,10 @@ def build_training_args(cfg: dict, output_dir: str, has_eval: bool) -> TrainingA
     train_cfg = cfg["training"]
     use_bf16 = bool(train_cfg.get("bf16", True) and torch.cuda.is_available() and torch.cuda.is_bf16_supported())
     use_fp16 = bool(train_cfg.get("fp16", True) and torch.cuda.is_available() and not use_bf16)
+    # paged_adamw_8bit requires bitsandbytes+CUDA; fall back to adamw on MPS/CPU
+    default_optim = "paged_adamw_8bit" if torch.cuda.is_available() else "adamw_torch"
+    # gradient_checkpointing not supported on MPS
+    use_grad_ckpt = train_cfg.get("gradient_checkpointing", True) and torch.cuda.is_available()
     training_kwargs = dict(
         output_dir=output_dir,
         per_device_train_batch_size=train_cfg.get("per_device_train_batch_size", 1),
@@ -47,8 +51,8 @@ def build_training_args(cfg: dict, output_dir: str, has_eval: bool) -> TrainingA
         save_total_limit=train_cfg.get("save_total_limit", 2),
         bf16=use_bf16,
         fp16=use_fp16,
-        gradient_checkpointing=train_cfg.get("gradient_checkpointing", True),
-        optim=train_cfg.get("optim", "paged_adamw_8bit"),
+        gradient_checkpointing=use_grad_ckpt,
+        optim=train_cfg.get("optim", default_optim),
         report_to=train_cfg.get("report_to", []),
         remove_unused_columns=False,
         logging_first_step=True,
