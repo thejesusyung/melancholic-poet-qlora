@@ -13,8 +13,8 @@ model:
   bias: none
 
 data:
-  train_path: data/generated/mixed_train.jsonl
-  eval_path: data/generated/val.jsonl
+  train_path: data/generated/custom_train.jsonl
+  eval_path: data/generated/custom_val.jsonl
   max_seq_length: 1024
 
 training:
