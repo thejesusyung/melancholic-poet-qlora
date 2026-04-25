@@ -70,6 +70,8 @@ def main() -> None:
     parser.add_argument("--mount_drive", action="store_true")
     parser.add_argument("--drive_output_dir", type=str, default=None, help="Optional mounted-Drive directory where the run output directory will be copied after training.")
     parser.add_argument("--resume_from_checkpoint", type=str, default=None)
+    parser.add_argument("--min_persona_strength", type=str, default=None, choices=["low", "medium", "high"],
+                        help="Drop training examples below this persona strength")
     parser.add_argument("--set", action="append", default=[], help="Forwarded config overrides for train.py, e.g. training.max_steps=80")
     args = parser.parse_args()
 
@@ -101,6 +103,8 @@ def main() -> None:
                 str(args.seed),
             ]
         )
+        if args.min_persona_strength:
+            prepare_cmd.extend(["--min_persona_strength", args.min_persona_strength])
         run_command(prepare_cmd, cwd=root, env=env)
 
     train_cmd = [sys.executable, "train.py", "--config", args.config]

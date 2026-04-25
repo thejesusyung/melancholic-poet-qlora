@@ -176,6 +176,9 @@ def main() -> None:
     parser.add_argument("--manifest_out", type=str, default="data/generated/custom_data_manifest.json")
     parser.add_argument("--val_ratio", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=1337)
+    parser.add_argument("--min_persona_strength", type=str, default=None,
+                        choices=["low", "medium", "high"],
+                        help="Drop examples below this persona strength (low < medium < high)")
     args = parser.parse_args()
 
     project_root = Path(__file__).resolve().parents[1]
@@ -185,6 +188,17 @@ def main() -> None:
     manifest_out = (project_root / args.manifest_out).resolve() if not Path(args.manifest_out).is_absolute() else Path(args.manifest_out)
 
     source_rows = load_rows(source_dir, args.source_pattern)
+
+    if args.min_persona_strength:
+        strength_order = {"low": 0, "medium": 1, "high": 2}
+        min_level = strength_order[args.min_persona_strength]
+        before = len(source_rows)
+        source_rows = [
+            row for row in source_rows
+            if strength_order.get(row["metadata"].get("persona_strength"), 0) >= min_level
+        ]
+        print(f"Filtered by persona_strength >= {args.min_persona_strength}: {before} -> {len(source_rows)}")
+
     train_rows, val_rows = split_rows(source_rows, val_ratio=args.val_ratio, seed=args.seed)
 
     write_jsonl(train_out, train_rows)
