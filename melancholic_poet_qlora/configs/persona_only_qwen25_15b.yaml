@@ -13,8 +13,8 @@ model:
   bias: none
 
 data:
-  train_path: data/generated/persona_only_train.jsonl
-  eval_path: data/generated/val.jsonl
+  train_path: data/generated/custom_train.jsonl
+  eval_path: data/generated/custom_val.jsonl
   max_seq_length: 1024
 
 training:
@@ -22,8 +22,8 @@ training:
   per_device_train_batch_size: 1
   per_device_eval_batch_size: 1
   gradient_accumulation_steps: 8
-  learning_rate: 0.00015
-  num_train_epochs: 4
+  learning_rate: 0.00005
+  num_train_epochs: 8
   max_steps: -1
   warmup_ratio: 0.05
   lr_scheduler_type: cosine
