@@ -131,8 +131,8 @@ def build_interface(tokenizer, base_model, peft_model):
     with gr.Blocks(title="Melancholic Poet — QLoRA Demo") as demo:
         gr.Markdown("# Melancholic Poet — QLoRA Persona Demo")
         gr.Markdown(
-            "Compare the **base Qwen2.5-1.5B** against two QLoRA adapters fine-tuned on 262 curated examples. "
-            "The adapters learn a warmer, more thoughtful voice — baked into the weights, no system prompt needed. "
+            "Compare the **base Qwen2.5-1.5B** against two QLoRA adapters: "
+            "**A** trained on 100 strongly poetic examples, **B** on 250 mixed (100 poetic + 150 medium). "
             "Toggle the poet system prompt to see how style stacks with fine-tuning."
         )
 
@@ -149,8 +149,8 @@ def build_interface(tokenizer, base_model, peft_model):
 
         with gr.Row():
             base_out = gr.Textbox(label="Base model (no adapter)", lines=10, interactive=False)
-            persona_out = gr.Textbox(label="Persona-only adapter", lines=10, interactive=False)
-            mixed_out = gr.Textbox(label="Mixed adapter", lines=10, interactive=False)
+            persona_out = gr.Textbox(label="A: 100 poetic examples", lines=10, interactive=False)
+            mixed_out = gr.Textbox(label="B: 250 mixed examples", lines=10, interactive=False)
 
         gr.Examples(
             examples=[
