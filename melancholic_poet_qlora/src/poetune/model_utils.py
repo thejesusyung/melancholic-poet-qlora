@@ -42,6 +42,23 @@ def load_train_model(cfg: dict[str, Any]):
     model_cfg = cfg["model"]
     train_cfg = cfg["training"]
     device = detect_device()
+    full_finetune = model_cfg.get("full_finetune", False)
+
+    if full_finetune:
+        compute_dtype = infer_torch_dtype(device, prefer_bf16=train_cfg.get("bf16", True))
+        model = AutoModelForCausalLM.from_pretrained(
+            model_cfg["base_model"],
+            trust_remote_code=model_cfg.get("trust_remote_code", False),
+            torch_dtype=compute_dtype,
+            low_cpu_mem_usage=True,
+        )
+        model.config.use_cache = False
+        if train_cfg.get("gradient_checkpointing", True):
+            model.gradient_checkpointing_enable()
+        if device == "cuda":
+            model = model.to("cuda")
+        print(f"Full fine-tune mode: all {sum(p.numel() for p in model.parameters()):,} parameters trainable")
+        return model
 
     if device == "cuda":
         import bitsandbytes as bnb  # noqa: F401
@@ -66,7 +83,6 @@ def load_train_model(cfg: dict[str, Any]):
             use_gradient_checkpointing=train_cfg.get("gradient_checkpointing", True),
         )
     else:
-        # MPS (Apple Silicon) or CPU — no 4-bit quantization, full LoRA in float32
         print(f"No CUDA detected — training in full precision on {device}.")
         torch_dtype = torch.float32
         model = AutoModelForCausalLM.from_pretrained(

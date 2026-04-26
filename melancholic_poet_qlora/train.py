@@ -151,18 +151,30 @@ def main() -> None:
     )
     trainer.train(resume_from_checkpoint=args.resume_from_checkpoint)
 
-    adapter_dir = str(Path(output_dir) / "adapter")
-    tokenizer_dir = str(Path(output_dir) / "tokenizer")
-    model.save_pretrained(adapter_dir)
-    tokenizer.save_pretrained(tokenizer_dir)
-    trainer.save_state()
+    full_finetune = cfg["model"].get("full_finetune", False)
+
+    if full_finetune:
+        model_dir = str(Path(output_dir) / "full_model")
+        tokenizer_dir = str(Path(output_dir) / "tokenizer")
+        model.save_pretrained(model_dir)
+        tokenizer.save_pretrained(model_dir)
+        tokenizer.save_pretrained(tokenizer_dir)
+        trainer.save_state()
+        save_label = model_dir
+    else:
+        adapter_dir = str(Path(output_dir) / "adapter")
+        tokenizer_dir = str(Path(output_dir) / "tokenizer")
+        model.save_pretrained(adapter_dir)
+        tokenizer.save_pretrained(tokenizer_dir)
+        trainer.save_state()
+        save_label = adapter_dir
 
     summary_payload = {
         "experiment_name": cfg.get("experiment_name"),
         "base_model": base_model,
         "train_path": train_path,
         "eval_path": eval_path,
-        "adapter_dir": adapter_dir,
+        "output_dir": save_label,
         "tokenizer_dir": tokenizer_dir,
         "train_rows": len(train_dataset),
         "eval_rows": 0 if eval_dataset is None else len(eval_dataset),
@@ -174,14 +186,14 @@ def main() -> None:
         json.dump(cfg, f, indent=2, ensure_ascii=False)
 
     warning = None
-    if cfg["training"].get("post_train_degradation_check", True):
+    if not full_finetune and cfg["training"].get("post_train_degradation_check", True):
         del trainer
         del model
         cleanup_memory()
         warning = run_post_train_check(cfg, adapter_dir=adapter_dir, out_dir=output_dir)
     if warning:
         print(warning)
-    print(f"Saved adapter to {adapter_dir}")
+    print(f"Saved model to {save_label}")
 
 
 if __name__ == "__main__":
