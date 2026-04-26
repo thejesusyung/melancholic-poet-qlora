@@ -51,8 +51,15 @@ def download_full_model():
     import subprocess
     if FULL_MODEL_DIR.exists() and any(FULL_MODEL_DIR.iterdir()):
         return
-    FULL_MODEL_DIR.mkdir(parents=True, exist_ok=True)
     s3_path = f"s3://{S3_BUCKET}/full_model/"
+    check = subprocess.run(
+        ["aws", "s3", "ls", s3_path],
+        capture_output=True, text=True, timeout=15
+    )
+    if check.returncode != 0 or not check.stdout.strip():
+        print("No full model found in S3, skipping.")
+        return
+    FULL_MODEL_DIR.mkdir(parents=True, exist_ok=True)
     print("Downloading full fine-tuned model from S3...")
     result = subprocess.run(
         ["aws", "s3", "sync", s3_path, str(FULL_MODEL_DIR)],
